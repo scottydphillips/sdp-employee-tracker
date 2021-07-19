@@ -1,12 +1,13 @@
 const { restoreDefaultPrompts } = require('inquirer');
 const inquirer = require('inquirer');
 const mysql = require('mysql');
+const password = require('./password')
 
 const connection = mysql.createConnection({
 	host: 'localhost',
 	port: 3306,
 	user: 'root',
-	password: 'gooby0611',
+	password: password,
 	database: 'employees_seedsDB'
 });
 
@@ -88,9 +89,9 @@ const addEmployee = () => {
 			choices: ['CEO', 'Manager', 'Sales elf', 'Toy Maker', 'Bag Loader', 'Reindeer Care Specialist', 'Sleigh Mechanic']
 		},
 		{
-			name: 'department_id',
+			name: 'manager_id',
 			type: 'list',
-			message: "What department does the employee work in?",
+			message: "Who is the employee's manager?",
 			choices: ['Management', 'Sales', 'Production floor', 'Shipping & Receiving', 'Reindeer Care', 'Sleigh Maintenance']
 		}
 	])	
@@ -112,16 +113,16 @@ const addEmployee = () => {
 					return role_id = 7;
 				}
 			};
-			let determineDepartmentId = () => {
-				if (data.department_id === 'Management') {
-					return department_id = 1;
-				} else if (data.department_id === 'Sales') {
+			let determineManagerId = () => {
+				if (data.manager_id === 'Management') {
+					return manager_id = 1;
+				} else if (data.manager_id === 'Sales') {
 					return department_id = 2;
-				} else if (data.department_id === 'Production Floor') {
+				} else if (data.manager_id === 'Production Floor') {
 					return department_id = 3;
-				} else if (data.department_id === 'Shipping & Receiving') {
+				} else if (data.manager_id === 'Shipping & Receiving') {
 					return department_id = 4;
-				} else if (data.department_id === 'Reindeer Care') {
+				} else if (data.manager_id === 'Reindeer Care') {
 					return department_id = 5;
 				} else {
 					return department_id = 6;
@@ -133,7 +134,7 @@ const addEmployee = () => {
 			first_name: data.first_name,
 			last_name: data.last_name,
 			role_id: determineRoleId(),
-			manager_id: determineDepartmentId()
+			manager_id: determineManagerId()
 		},
 		(err,res) => {
 		if (err) throw err;
@@ -143,27 +144,33 @@ const addEmployee = () => {
 	)
 }
 
-// const viewEmployee = (data) => {
-// 	connection.query(
-// 		'SELECT * FROM employee',
-// 		(err,res) => {
-// 			if(err) throw err;
-// 			inquirer.prompt([{
-// 				name: 'employee',
-// 				type: 'rawlist',
-// 				choices() {
-// 					const managerName = `${employee.first_name} ${employee.last_name}`
-// 					console.log(managerName);
-// 					const choiceArray = [];
-// 					results.forEach((managerName) => {
-// 						choiceArray.push()
-// 					});
-// 					return choiceArray;
-// 				}
-// 			}]);
-// 		}
-// 	)
-// }
+const viewEmployee = () => {
+	connection.query(
+		'SELECT * FROM employee',
+		(err,res) => {
+			if(err) throw err;
+			inquirer.prompt([{
+				name: 'employee',
+				type: 'rawlist',
+				choices() {
+					const choiceArray = [];
+					res.forEach(({ employeeName }) => {
+						choiceArray.push(employeeName)
+					});
+					return choiceArray;
+				},
+				message: 'Choose an employee'
+			}])
+			.then((data) => {
+				connection.query(
+					'LEFT JOIN employee ON role = role.id', (err,res) => {
+						if(err) throw err;
+					}
+				); askAnotherQuestion();
+			})
+		}
+	)
+}
 
 // const updateEmployeeRole = (data) => {
 // 	connection.query(
@@ -178,54 +185,54 @@ const addEmployee = () => {
 // 	)
 // }
 
-// const addRole = (data) => {
-// 	let determineDepartmentId = () => {
-// 		if (data.department_id === 'Management') {
-// 			return department_id = 1;
-// 		} else if (data.department_id === 'Sales') {
-// 			return department_id = 2;
-// 		} else if (data.department_id === 'Production Floor') {
-// 			return department_id = 3;
-// 		} else if (data.department_id === 'Shipping & Receiving') {
-// 			return department_id = 4;
-// 		} else if (data.department_id === 'Reindeer Care') {
-// 			return department_id = 5;
-// 		} else {
-// 			return department_id = 6;
-// 		}
-// 	};
-// 	inquirer.prompt([
-// 		{
-// 			name: 'title',
-// 			type: 'list',
-// 			message: "What is the employee's title?"
-// 		},
-// 		{
-// 			name: 'salary',
-// 			type: 'input',
-// 			message: "What is the employee's salary?"
-// 		},
-// 		{
-// 			name: 'department_id',
-// 			type: 'list',
-// 			message: "What department does the employee work in?",
-// 			choices: ['Management', 'Sales', 'Production floor', 'Shipping & Receiving', 'Reindeer Care', 'Sleigh Maintenance']
-// 		}
-// 	])
-// 	.then((data) => {
-// 	connection.query(
-// 		`SELECT ? FROM department WHERE`,
-// 		{
-// 			title: `${data.title}`,
-// 			salary: `${data.salary}`,
-// 			department_id: determineDepartmentId()
-// 		},
-// 		(err,res) => {
-// 			console.table(res)
-// 		})
-// 		}
-// 	)
-// }
+const addRole = (data) => {
+	let determineDepartmentId = () => {
+		if (data.department_id === 'Management') {
+			return department_id = 1;
+		} else if (data.department_id === 'Sales') {
+			return department_id = 2;
+		} else if (data.department_id === 'Production Floor') {
+			return department_id = 3;
+		} else if (data.department_id === 'Shipping & Receiving') {
+			return department_id = 4;
+		} else if (data.department_id === 'Reindeer Care') {
+			return department_id = 5;
+		} else {
+			return department_id = 6;
+		}
+	};
+	inquirer.prompt([
+		{
+			name: 'title',
+			type: 'list',
+			message: "What is the new role's title?"
+		},
+		{
+			name: 'salary',
+			type: 'input',
+			message: "What is the new employee's salary?"
+		},
+		{
+			name: 'department_id',
+			type: 'list',
+			message: "What department does the employee work in?",
+			choices: ['Management', 'Sales', 'Production floor', 'Shipping & Receiving', 'Reindeer Care', 'Sleigh Maintenance']
+		}
+	])
+	.then((data) => {
+	connection.query(
+		`INSERT INTO role SET ?`,
+		{
+			title: data.title,
+			salary: data.salary,
+			department_id: determineDepartmentId()
+		},
+		(err,res) => {
+			console.table(res)
+		})
+		}
+	)
+}
 
 // const viewRole = (data) => {
 // 	connection.query(
