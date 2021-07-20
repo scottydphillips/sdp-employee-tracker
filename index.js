@@ -16,7 +16,7 @@ let managerArray = []
 
 const firstQuestion = [{
 	name: 'firstQuestion',
-	type: 'list',
+	type: 'rawlist',
 	message: 'What would you like to do?',
 	choices: ['Add an employee', 'View an employee', "Update an employee's role", 'Add a role', 'View a role', 'Add a department', 'View a department', 'End program']
 }]
@@ -30,35 +30,7 @@ const askFirstQuestion = () => {
 		} else if (data.firstQuestion === 'View an employee') {
 			viewEmployee();
 		} else if (data.firstQuestion === "Update an employee's role") {
-			updateEmployeeRole();
-		} else if (data.firstQuestion === 'Add a role') {
-			addRole();
-		} else if (data.firstQuestion === 'View a role') {
-			viewRole();
-		} else if (data.firstQuestion === 'Add a department') {
-			addDepartment();
-		} else if (data.firstQuestion === 'View a department') {
-			viewDepartment();
-		} else {
-			return;
-		}
-	}
-)};
-
-const askAnotherQuestion = () => {
-	inquirer.prompt([{
-		name: 'anotherOne',
-		type: 'list',
-		message: 'What else would you like to do?',
-		choices: ['Add an employee', 'View an employee', "Update an employee's role", 'Add a role', 'View a role', 'Add a department', 'View a department', 'End program']
-	}])
-	.then((data) => {
-		if(data.firstQuestion === 'Add an employee') {
-			addEmployee();
-		} else if (data.firstQuestion === 'View an employee') {
-			viewEmployee();
-		} else if (data.firstQuestion === "Update an employee's role") {
-			updateEmployeeRole();
+			chooseEmployee();
 		} else if (data.firstQuestion === 'Add a role') {
 			addRole();
 		} else if (data.firstQuestion === 'View a role') {
@@ -94,8 +66,8 @@ const addEmployee = () => {
 		{
 			name: 'manager_id',
 			type: 'list',
-			message: "Who is the employee's manager?",
-			choices: managerArray
+			message: "What is the employee's department?",
+			choices: ['Management', 'Sales', 'Production Floor', 'Shipping & Receiving', 'Reindeer Care', 'Sleigh Maintenance']
 		}
 	])	
 		.then((data) => {
@@ -116,75 +88,113 @@ const addEmployee = () => {
 					return role_id = 7;
 				}
 			};
-			let determineManagerId = () => {
-				connection.query(
-					'SELECT * FROM employee WHERE role_id = 2',
-					(err,res) => {
-						if (err) throw err;
-						for(let j=0; j=res.length; j++) {
-							managerArray.push(`${res.first_name} ${res.last_name}`)
-						}
-					}
-				)
-			};
+			let determineDepartmentId = () => {
+        if (data.department_id === "Management") {
+          return (department_id = 1);
+        } else if (data.department_id === "Sales") {
+          return (department_id = 2);
+        } else if (data.department_id === "Production Floor") {
+          return (department_id = 3);
+        } else if (data.department_id === "Shipping & Receiving") {
+          return (department_id = 4);
+        } else if (data.department_id === "Reindeer Care") {
+          return (department_id = 5);
+        } else {
+          return (department_id = 6);
+        }
+      };
 			connection.query(
 		'INSERT INTO employee SET ?',
 		{
 			first_name: data.first_name,
 			last_name: data.last_name,
 			role_id: determineRoleId(),
-			manager_id: determineManagerId()
+			manager_id: determineDepartmentId()
 		},
 		(err,res) => {
 		if (err) throw err;
-		askAnotherQuestion();
+		askFirstQuestion();
 		}
 		)}
 	)
 }
 
 const viewEmployee = () => {
-	let choiceArray = [];
 	connection.query(
 		'SELECT * FROM employee',
 		(err,res) => {
-			if(err) throw err;
-			for(let i=0; i<res.length; i++) {
-				 choiceArray.push(`${res[i].first_name} ${res[i].last_name}`);		 
-			}
-		inquirer.prompt([{
-				name: 'employee',
-				type: 'rawlist',
-				choices: choiceArray,
-				message: 'Choose an employee'
-			}])
-			.then((data) => {
-				console.log(data);
-				connection.query(
-					'SELECT * FROM employee LEFT JOIN role ON role.id = employee.role_id LEFT JOIN department ON department.id = employee.manager_id',
-					(err,res) => {
-						if(err) throw err;
-						console.table(data);
-					}
-				); askAnotherQuestion();
-			}).catch((err) => {
-				console.error(err);
-		})
-	})
+			if (err) throw err;
+		console.table(res);
+		askFirstQuestion();
+		}	
+	)
 }
 
-// const updateEmployeeRole = (data) => {
-// 	connection.query(
-// 		'SELECT FROM employee WHERE ? UPDATE employee SET ? WHERE ?',
-// 		{
+const chooseEmployee = () => {
+	connection.query(
+	'SELECT * from EMPLOYEE', (err, res) => {
+		if (err) throw err;
+		inquirer.prompt({
+			name: 'employeeName',
+			type: 'rawlist',
+			message: 'Select an employee to update',
+			choices() {
+				let choiceArray = []
+				res.forEach(({ first_name }) => {
+					choiceArray.push(first_name);
+				});
+				return choiceArray;
+			}
+		}
+		).then((data) => {
+			updateEmployeeRole(data);
+		}
+		)}
+	)
+}
 
-// 		},
-// 		(err,res) => {
-// 			if(err) throw err;
-// 			console.table(`${this.table}`)
-// 		}
-// 	)
-// }
+const updateEmployeeRole = (employee) => {
+	connection.query(
+		'SELECT * FROM role',
+		(err, results) => {
+			if(err) throw err;
+		inquirer.prompt([
+		{
+			name: 'role_id',
+			type: 'list',
+			message: "What is the employee's role?",
+			choices() {
+				let banana = [];
+				results.forEach(({ title }) => {
+					banana.push(title) 
+				}); return banana;
+			}
+		},
+	])
+		.then((data) => {
+			let chosenRole;
+			results.forEach((role) => {
+				if (role.title === data.role_id) {
+					chosenRole = role;
+				}
+			})
+		connection.query(
+		'UPDATE employee SET ? WHERE ?',
+		[{
+			role_id: chosenRole.id,
+		},
+		{
+			first_name: employee.employeeName,
+		}],
+		(err,res) => {
+			if(err) throw err;
+			console.table(res);
+			askFirstQuestion();
+		}
+	)
+})
+})
+}
 
 const addRole = () => {
 	inquirer
@@ -240,46 +250,27 @@ const addRole = () => {
           if (err) throw err;
           console.table(res);
         }
-      ); askAnotherQuestion();
+      ); askFirstQuestion();
     });
 }
 
 const viewRole = () => {
-	let choiceArray = [];
 	connection.query(
 		'SELECT * FROM role',
 		(err,res) => {
-			if(err) throw err;
-			for(let i=0; i<res.length; i++) {
-				 choiceArray.push(`${res[i].first_name} ${res[i].last_name}`);		 
-			}
-		inquirer.prompt([{
-				name: 'role',
-				type: 'rawlist',
-				choices: choiceArray,
-				message: 'Choose a role'
-			}])
-			.then((data) => {
-				console.log(data);
-				connection.query(
-					'SELECT * FROM role LEFT JOIN employee ON employee.role_id = role.id',
-					(err,res) => {
-						if(err) throw err;
-						console.table('\n', res);
-					}
-				); askAnotherQuestion();
-			}).catch((err) => {
-				console.error(err);
-		});
-	})
+			if (err) throw err;
+		console.table(res);
+		askFirstQuestion();
+		}	
+	)
 }
 
 const addDepartment = () => {
 	inquirer.prompt([
       {
-        name: "title",
+        name: "name",
         type: "input",
-        message: "What is the new department's title?",
+        message: "What is the new department's name?",
       },
     ])
     .then((data) => {
@@ -291,46 +282,20 @@ const addDepartment = () => {
         (err, res) => {
           if (err) throw err;
         }
-      ); askAnotherQuestion();
+      ); askFirstQuestion();
     });
 }
 
-
-// const viewDepartment = () => {
-// 	let choiceArray = [];
-// 	connection.query(
-// 		'SELECT * FROM department',
-// 		(err,res) => {
-// 			if(err) throw err;
-// 			for(let i=0; i<res.length; i++) {
-// 				 choiceArray.push(`${res[i].first_name} ${res[i].last_name}`);		 
-// 			}
-// 		inquirer.prompt([{
-// 				name: 'department',
-// 				type: 'rawlist',
-// 				choices: choiceArray,
-// 				message: 'Choose a department'
-// 			}])
-// 			.then((data) => {
-// 				console.log(data);
-// 				// connection.query(
-// 				// 	'SELECT * FROM department LEFT JOIN employee ON employee.manager_id = department.id',
-// 				// 	(err,res) => {
-// 				// 		if(err) throw err;
-// 				// 		console.table(data);
-// 				// 	}
-// 				); askAnotherQuestion();
-// 			}).catch((err) => {
-// 				console.error(err);
-// 		})
-// 	})
-// }
-
-
-
-// const init = () => {
-// 	askFirstQuestion()
-// }
+const viewDepartment = () => {
+	connection.query(
+		'SELECT * FROM department',
+		(err,res) => {
+			if (err) throw err;
+		console.table(res);
+		askFirstQuestion();
+		}	
+	)
+}
 
 askFirstQuestion();
 
