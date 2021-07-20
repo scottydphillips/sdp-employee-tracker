@@ -12,6 +12,8 @@ const connection = mysql.createConnection({
 	database: 'employees_seedsDB',
 });
 
+let managerArray = []
+
 const firstQuestion = [{
 	name: 'firstQuestion',
 	type: 'list',
@@ -93,7 +95,7 @@ const addEmployee = () => {
 			name: 'manager_id',
 			type: 'list',
 			message: "Who is the employee's manager?",
-			choices: ['Management', 'Sales', 'Production floor', 'Shipping & Receiving', 'Reindeer Care', 'Sleigh Maintenance']
+			choices: managerArray
 		}
 	])	
 		.then((data) => {
@@ -115,19 +117,15 @@ const addEmployee = () => {
 				}
 			};
 			let determineManagerId = () => {
-				if (data.manager_id === 'Management') {
-					return manager_id = 1;
-				} else if (data.manager_id === 'Sales') {
-					return department_id = 2;
-				} else if (data.manager_id === 'Production Floor') {
-					return department_id = 3;
-				} else if (data.manager_id === 'Shipping & Receiving') {
-					return department_id = 4;
-				} else if (data.manager_id === 'Reindeer Care') {
-					return department_id = 5;
-				} else {
-					return department_id = 6;
-				}
+				connection.query(
+					'SELECT * FROM employee WHERE role_id = 2',
+					(err,res) => {
+						if (err) throw err;
+						for(let j=0; j=res.length; j++) {
+							managerArray.push(`${res.first_name} ${res.last_name}`)
+						}
+					}
+				)
 			};
 			connection.query(
 		'INSERT INTO employee SET ?',
@@ -163,14 +161,7 @@ const viewEmployee = () => {
 			.then((data) => {
 				console.log(data);
 				connection.query(
-					'SELECT * FROM employee LEFT JOIN role ON role.id = employee.role_id',
-					{
-					first_name: data.first_name,
-					last_name: data.last_name,
-					title: data.title,
-					salary: data.salary,
-					manager_id: data.manager_id
-					}, 
+					'SELECT * FROM employee LEFT JOIN role ON role.id = employee.role_id LEFT JOIN department ON department.id = employee.manager_id',
 					(err,res) => {
 						if(err) throw err;
 						console.table(data);
@@ -184,7 +175,7 @@ const viewEmployee = () => {
 
 // const updateEmployeeRole = (data) => {
 // 	connection.query(
-// 		'SELECT ? FROM employee WHERE ? UPDATE employee SET ? WHERE ?',
+// 		'SELECT FROM employee WHERE ? UPDATE employee SET ? WHERE ?',
 // 		{
 
 // 		},
@@ -270,23 +261,16 @@ const viewRole = () => {
 			}])
 			.then((data) => {
 				console.log(data);
-				// connection.query(
-				// 	'SELECT * FROM employee LEFT JOIN role ON role.id = employee.role_id',
-				// 	{
-				// 	first_name: data.first_name,
-				// 	last_name: data.last_name,
-				// 	title: data.title,
-				// 	salary: data.salary,
-				// 	manager_id: data.manager_id
-				// 	}, 
-				// 	(err,res) => {
-				// 		if(err) throw err;
-				// 		console.table(data);
-				// 	}
+				connection.query(
+					'SELECT * FROM role LEFT JOIN employee ON employee.role_id = role.id',
+					(err,res) => {
+						if(err) throw err;
+						console.table('\n', res);
+					}
 				); askAnotherQuestion();
 			}).catch((err) => {
 				console.error(err);
-		})
+		});
 	})
 }
 
@@ -312,42 +296,35 @@ const addDepartment = () => {
 }
 
 
-const viewDepartment = () => {
-	let choiceArray = [];
-	connection.query(
-		'SELECT * FROM department',
-		(err,res) => {
-			if(err) throw err;
-			for(let i=0; i<res.length; i++) {
-				 choiceArray.push(`${res[i].first_name} ${res[i].last_name}`);		 
-			}
-		inquirer.prompt([{
-				name: 'department',
-				type: 'rawlist',
-				choices: choiceArray,
-				message: 'Choose a department'
-			}])
-			.then((data) => {
-				console.log(data);
-				// connection.query(
-				// 	'SELECT * FROM employee LEFT JOIN role ON role.id = employee.role_id',
-				// 	{
-				// 	first_name: data.first_name,
-				// 	last_name: data.last_name,
-				// 	title: data.title,
-				// 	salary: data.salary,
-				// 	manager_id: data.manager_id
-				// 	}, 
-				// 	(err,res) => {
-				// 		if(err) throw err;
-				// 		console.table(data);
-				// 	}
-				); askAnotherQuestion();
-			}).catch((err) => {
-				console.error(err);
-		})
-	})
-}
+// const viewDepartment = () => {
+// 	let choiceArray = [];
+// 	connection.query(
+// 		'SELECT * FROM department',
+// 		(err,res) => {
+// 			if(err) throw err;
+// 			for(let i=0; i<res.length; i++) {
+// 				 choiceArray.push(`${res[i].first_name} ${res[i].last_name}`);		 
+// 			}
+// 		inquirer.prompt([{
+// 				name: 'department',
+// 				type: 'rawlist',
+// 				choices: choiceArray,
+// 				message: 'Choose a department'
+// 			}])
+// 			.then((data) => {
+// 				console.log(data);
+// 				// connection.query(
+// 				// 	'SELECT * FROM department LEFT JOIN employee ON employee.manager_id = department.id',
+// 				// 	(err,res) => {
+// 				// 		if(err) throw err;
+// 				// 		console.table(data);
+// 				// 	}
+// 				); askAnotherQuestion();
+// 			}).catch((err) => {
+// 				console.error(err);
+// 		})
+// 	})
+// }
 
 
 
